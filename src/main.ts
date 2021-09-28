@@ -1,28 +1,44 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, Editor, MarkdownView } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, Editor, MarkdownView, WorkspaceLeaf } from 'obsidian';
+import Cards from "./ui/component/Cards.svelte";
+import CardsView from 'ui/view/cardsView';
+import { VIEW_TYPE_CARDS } from 'utils/constants';
 
-const NEW_PLOTLY_CHART_NAME = "New Plotly Chart";
-const newPlotlyChart = (editor: Editor)=>{
-	let doc = editor.getDoc();
-	let cursor = doc.getCursor();
-	doc.replaceRange("```plotly\ndata:\n\t- x: [0,1,2]\n\t  y: [0,1,0]\n```\n", cursor);
-}
+export default class InfiniteScrollPlugin extends Plugin {
+	private view: CardsView;
 
-export default class PlotlyPlugin extends Plugin {
 	async onload() {
-		console.log('loading Plotly plugin');
+		console.log('loading Infinite Scroll plugin');
 		
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
+		this.registerView(
+			VIEW_TYPE_CARDS, 
+			(leaf:WorkspaceLeaf) => (this.view = new CardsView(leaf))
+		);
 
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		this.addCommand({
+			id: "show-geographic-view",
+			name: "Open view",
+			checkCallback: (checking: boolean) => {
+			  if (checking) {
+				return (
+				  this.app.workspace.getLeavesOfType(VIEW_TYPE_CARDS).length === 0
+				);
+			  }
+			  this.initLeaf();
+			},
+		  });
 	}
 
+	initLeaf(): void {
+		if (this.app.workspace.getLeavesOfType(VIEW_TYPE_CARDS).length) {
+		  return;
+		}
+		this.app.workspace.getLeaf(false).setViewState({
+		  type: VIEW_TYPE_CARDS,
+		});
+	}
+
+
 	onunload() {
-		console.log('unloading Plotly plugin');
+		console.log('unloading Infinite Scroll plugin');
 	}
 }
